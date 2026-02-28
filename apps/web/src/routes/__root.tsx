@@ -27,11 +27,6 @@ function RootLayout() {
   }, [router])
 
   return (
-    <>
-      <Outlet />
-      {/* Both devtools panels are automatically stripped from production builds */}
-      <TanStackRouterDevtools position="bottom-right" />
-      <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
-    </>
+    <Outlet />
   )
 }

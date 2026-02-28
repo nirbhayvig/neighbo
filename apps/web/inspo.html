@@ -1,0 +1,604 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  ArrowRight, 
+  ShieldCheck, 
+  Users, 
+  CircleDashed, 
+  MapPin, 
+  Leaf, 
+  HeartHandshake, 
+  BadgeCheck,
+  Search,
+  Menu,
+  Sparkles,
+  Filter,
+  TrendingUp,
+  MessageSquare,
+  Check
+} from 'lucide-react';
+
+// --- STYLES & FONTS INJECTION ---
+const globalStyles = `
+  @import url('https://api.fontshare.com/v2/css?f[]=chillax@400,500,600,700&f[]=synonym@400,500,700&display=swap');
+
+  :root {
+    --mn-navy: #001E44;
+    --mn-blue: #5DB9FF;
+    --mn-blue-light: #EBF5FF;
+    --mn-white: #FFFFFF;
+    --mn-offwhite: #F8FAFC;
+  }
+
+  body {
+    background-color: var(--mn-offwhite);
+    color: var(--mn-navy);
+    font-family: 'Synonym', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: 'Chillax', sans-serif;
+  }
+
+  /* Custom Selection */
+  ::selection {
+    background-color: var(--mn-blue-light);
+    color: var(--mn-navy);
+  }
+
+  /* Soft Background Pattern */
+  .bg-dots {
+    background-image: radial-gradient(var(--mn-navy) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-position: -1px -1px;
+    opacity: 0.03;
+  }
+
+  /* Animation Utilities */
+  .reveal {
+    animation: revealIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  
+  @keyframes revealIn {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Friendly Hover States */
+  .hover-lift {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 30, 68, 0.08);
+  }
+  
+  .hover-slide-arrow:hover .arrow-icon {
+    transform: translateX(4px);
+  }
+
+  /* Custom Toggle Styles */
+  .toggle-checkbox:checked {
+    right: 0;
+    border-color: #5DB9FF;
+  }
+  .toggle-checkbox:checked + .toggle-label {
+    background-color: #5DB9FF;
+  }
+`;
+
+// --- COMPONENTS ---
+
+const Section = ({ title, description, children, className = "" }) => (
+  <div className={`py-20 border-b border-[#001E44]/5 ${className}`}>
+    <div className="max-w-6xl mx-auto px-6 lg:px-12 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8">
+      <div className="lg:col-span-4">
+        <h2 className="font-display text-3xl font-semibold text-[#001E44] mb-4 tracking-tight">{title}</h2>
+        {description && <p className="text-[#001E44]/70 text-base leading-relaxed max-w-sm">{description}</p>}
+      </div>
+      <div className="lg:col-span-8 reveal">
+        {children}
+      </div>
+    </div>
+  </div>
+);
+
+const ColorSwatch = ({ name, hex, className, textClass, borderClass = "" }) => (
+  <div className={`rounded-3xl flex flex-col justify-between p-6 h-48 hover-lift ${className} ${borderClass}`}>
+    <span className={`font-display text-lg font-semibold ${textClass}`}>{name}</span>
+    <span className={`font-mono text-sm opacity-80 ${textClass}`}>{hex}</span>
+  </div>
+);
+
+const TrustBadge = ({ tier }) => {
+  const tiers = {
+    1: { label: "Self-Attested", icon: CircleDashed, cls: "bg-white text-[#001E44] border border-[#001E44]/10 shadow-sm" },
+    2: { label: "Community Vetted", icon: Users, cls: "bg-[#EBF5FF] text-[#001E44] border border-[#5DB9FF]/30" },
+    3: { label: "Moderator Verified", icon: ShieldCheck, cls: "bg-[#001E44] text-[#FFFFFF] shadow-md shadow-[#001E44]/20" }
+  };
+  const config = tiers[tier];
+  const Icon = config.icon;
+  
+  return (
+    <div className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wide ${config.cls}`}>
+      <Icon size={14} strokeWidth={2.5} />
+      {config.label}
+    </div>
+  );
+};
+
+const ValueTag = ({ icon: Icon, label, active }) => (
+  <span className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors cursor-pointer
+    ${active 
+      ? "bg-[#5DB9FF] text-[#001E44] shadow-sm shadow-[#5DB9FF]/20" 
+      : "bg-white text-[#001E44]/80 border border-[#001E44]/10 hover:border-[#5DB9FF]/50 hover:text-[#001E44] shadow-sm"
+    }`}>
+    {Icon && <Icon size={16} className={active ? "text-[#001E44]" : "text-[#5DB9FF]"} />}
+    {label}
+  </span>
+);
+
+const Button = ({ children, variant = "primary", className = "", ...props }) => {
+  const base = "inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl font-display text-base font-semibold transition-all duration-300 hover-slide-arrow hover-lift shadow-sm";
+  const variants = {
+    primary: "bg-[#001E44] text-white shadow-[#001E44]/20",
+    secondary: "bg-[#5DB9FF] text-[#001E44] shadow-[#5DB9FF]/20",
+    outline: "bg-white text-[#001E44] border border-[#001E44]/10 hover:border-[#001E44]/30"
+  };
+  
+  return (
+    <button className={`${base} ${variants[variant]} ${className}`} {...props}>
+      {children}
+    </button>
+  );
+};
+
+const RestaurantCard = ({ name, type, distance, tier, values, image }) => (
+  <div className="group bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,30,68,0.04)] border border-[#001E44]/5 hover-lift flex flex-col h-full cursor-pointer overflow-hidden">
+    {/* Image Container */}
+    <div className="relative h-56 overflow-hidden p-3 pb-0">
+      <div className="w-full h-full rounded-[1.5rem] overflow-hidden relative">
+        <div className="absolute inset-0 bg-[#001E44]/10 group-hover:bg-transparent transition-colors z-10" />
+        <img src={image} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+      </div>
+      <div className="absolute top-6 right-6 z-20">
+        <TrustBadge tier={tier} />
+      </div>
+    </div>
+    
+    {/* Content */}
+    <div className="p-8 flex flex-col flex-grow">
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h3 className="font-display text-2xl font-bold text-[#001E44] leading-tight mb-1">{name}</h3>
+          <p className="text-sm font-medium text-[#001E44]/50">{type}</p>
+        </div>
+        <div className="flex items-center gap-1.5 text-sm font-semibold text-[#001E44] bg-[#F8FAFC] px-3 py-1.5 rounded-full border border-[#001E44]/5">
+          <MapPin size={14} className="text-[#5DB9FF]" />
+          {distance}
+        </div>
+      </div>
+      
+      <div className="mt-auto pt-4">
+        <div className="flex flex-wrap gap-2 mb-8">
+          {values.map((v, i) => (
+             <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F8FAFC] rounded-lg text-xs font-semibold text-[#001E44]/70">
+               {v.icon && <v.icon size={12} className="text-[#5DB9FF]" />}
+               {v.label}
+             </span>
+          ))}
+        </div>
+        
+        <div className="flex items-center gap-2 group-hover:text-[#5DB9FF] transition-colors text-[#001E44]">
+          <span className="font-display font-semibold text-sm">Explore Menu & Values</span>
+          <ArrowRight className="arrow-icon transition-transform duration-300" size={16} />
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+const SearchBar = () => (
+  <div className="flex items-center bg-white rounded-full p-2 border border-[#001E44]/10 shadow-sm hover-lift max-w-2xl w-full focus-within:border-[#5DB9FF]/50 focus-within:shadow-[0_8px_30px_rgb(93,185,255,0.15)] transition-all">
+    <div className="flex items-center text-[#001E44]/40 pl-4 pr-2">
+      <Search size={20} />
+    </div>
+    <input 
+      type="text" 
+      placeholder="Search for restaurants, bars, or specific values..." 
+      className="flex-grow bg-transparent border-none outline-none text-[#001E44] font-medium placeholder:text-[#001E44]/40 text-base"
+    />
+    <div className="hidden md:flex items-center gap-2 border-l border-[#001E44]/10 pl-4 mr-2">
+      <MapPin size={16} className="text-[#5DB9FF]" />
+      <span className="text-sm font-medium text-[#001E44]/70">Minneapolis</span>
+    </div>
+    <button className="bg-[#EBF5FF] text-[#001E44] px-4 py-2.5 rounded-full flex items-center gap-2 font-display font-semibold text-sm hover:bg-[#5DB9FF] transition-colors ml-2">
+      <Filter size={16} />
+      <span className="hidden sm:inline">Filters</span>
+    </button>
+  </div>
+);
+
+const Toggle = ({ label, defaultChecked = false }) => {
+  const [checked, setChecked] = useState(defaultChecked);
+  return (
+    <label className="flex items-center cursor-pointer gap-3 group">
+      <div className="relative">
+        <input 
+          type="checkbox" 
+          className="sr-only" 
+          checked={checked} 
+          onChange={() => setChecked(!checked)} 
+        />
+        <div className={`block w-12 h-7 rounded-full transition-colors duration-300 ease-in-out ${checked ? 'bg-[#5DB9FF]' : 'bg-[#001E44]/10'}`}></div>
+        <div className={`absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-300 ease-in-out shadow-sm ${checked ? 'transform translate-x-5' : ''}`}></div>
+      </div>
+      <span className="font-medium text-sm text-[#001E44]/80 group-hover:text-[#001E44] transition-colors">{label}</span>
+    </label>
+  );
+};
+
+const StatCard = ({ label, value, trend, icon: Icon }) => (
+  <div className="bg-white p-6 rounded-[2rem] border border-[#001E44]/5 shadow-sm hover-lift flex flex-col justify-between h-full">
+    <div className="flex justify-between items-start mb-4">
+      <div className="p-3 bg-[#EBF5FF] rounded-xl text-[#5DB9FF]">
+        <Icon size={20} />
+      </div>
+      {trend && (
+        <span className="flex items-center gap-1 text-sm font-bold text-[#5DB9FF] bg-[#5DB9FF]/10 px-2.5 py-1 rounded-lg">
+          <TrendingUp size={14} /> {trend}
+        </span>
+      )}
+    </div>
+    <div>
+      <h4 className="font-display text-3xl font-bold text-[#001E44] tracking-tight mb-1">{value}</h4>
+      <p className="text-sm font-medium text-[#001E44]/60">{label}</p>
+    </div>
+  </div>
+);
+
+const CommunityReport = ({ user, initials, date, text, tags }) => (
+  <div className="bg-white p-6 rounded-[2rem] border border-[#001E44]/5 shadow-sm hover-lift relative overflow-hidden">
+    {/* Subtle decorative background element */}
+    <div className="absolute -right-4 -top-4 text-[#EBF5FF] opacity-50 rotate-12">
+      <MessageSquare size={100} fill="currentColor" />
+    </div>
+    
+    <div className="relative z-10">
+      <div className="flex items-center gap-4 mb-4">
+        <div className="w-12 h-12 rounded-full bg-[#EBF5FF] border-2 border-white shadow-sm flex items-center justify-center text-[#001E44] font-display font-bold text-lg">
+          {initials}
+        </div>
+        <div>
+          <h4 className="font-display font-bold text-[#001E44]">{user}</h4>
+          <p className="text-xs font-medium text-[#001E44]/50">{date}</p>
+        </div>
+        <div className="ml-auto bg-[#5DB9FF]/10 text-[#5DB9FF] p-2 rounded-full" title="Verified Visit">
+          <Check size={16} strokeWidth={3} />
+        </div>
+      </div>
+      
+      <p className="text-[#001E44]/80 text-sm leading-relaxed mb-5 line-clamp-3">
+        "{text}"
+      </p>
+      
+      <div className="flex flex-wrap gap-2">
+        {tags.map((tag, i) => (
+          <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#F8FAFC] border border-[#001E44]/5 rounded-lg text-xs font-semibold text-[#001E44]/70">
+            {tag}
+          </span>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
+// --- MAIN APPLICATION ---
+
+export default function App() {
+  useEffect(() => {
+    // Inject styles on mount
+    const styleSheet = document.createElement("style");
+    styleSheet.innerText = globalStyles;
+    document.head.appendChild(styleSheet);
+    return () => styleSheet.remove();
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col relative selection:bg-[#EBF5FF]">
+      <div className="absolute inset-0 bg-dots pointer-events-none fixed" />
+      
+      {/* Navigation Bar */}
+      <nav className="flex items-center justify-between px-6 lg:px-12 py-6 relative z-50 max-w-[1600px] mx-auto w-full">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-[#5DB9FF] flex items-center justify-center text-[#001E44]">
+            <Sparkles size={16} strokeWidth={2.5} />
+          </div>
+          <span className="font-display font-bold text-2xl tracking-tight text-[#001E44]">Neighbo</span>
+        </div>
+        <div className="hidden md:flex items-center gap-8 font-medium text-sm text-[#001E44]/70">
+          <a href="#" className="hover:text-[#001E44] transition-colors">Design Foundation</a>
+          <a href="#" className="hover:text-[#001E44] transition-colors">Components</a>
+          <a href="#" className="hover:text-[#001E44] transition-colors">Trust Model</a>
+        </div>
+        <div className="hidden md:block">
+           <Button variant="outline" className="py-2.5 px-5 text-sm">Download UI Kit</Button>
+        </div>
+        <button className="md:hidden p-2 rounded-full bg-white border border-[#001E44]/10 text-[#001E44]">
+          <Menu size={20} />
+        </button>
+      </nav>
+
+      {/* Hero Header */}
+      <header className="relative pt-12 pb-24 px-6 lg:px-12 max-w-6xl mx-auto w-full text-center reveal">
+        <div className="inline-flex items-center gap-2 bg-white border border-[#001E44]/10 px-4 py-2 rounded-full mb-8 shadow-sm">
+          <span className="w-2 h-2 rounded-full bg-[#5DB9FF] animate-pulse"></span>
+          <span className="font-display text-sm font-semibold text-[#001E44]">Neighbo Design System v2.0</span>
+        </div>
+        <h1 className="font-display text-5xl lg:text-7xl font-bold text-[#001E44] leading-[1.05] tracking-tight mb-8 max-w-4xl mx-auto">
+          Values-based discovery, <br/>
+          <span className="text-[#5DB9FF]">designed for humans.</span>
+        </h1>
+        <p className="text-xl font-medium text-[#001E44]/60 max-w-2xl mx-auto leading-relaxed mb-10">
+          A clean, approachable interface built on the colors of the Minnesota flag. 
+          Designed to make civic engagement and values-based commerce feel welcoming, transparent, and effortlessly professional.
+        </p>
+      </header>
+
+      <main className="bg-white rounded-t-[3rem] shadow-[0_-20px_40px_rgba(0,30,68,0.03)] border-t border-[#001E44]/5 relative z-10 pb-24">
+        
+        {/* 1. Color System */}
+        <Section 
+          title="Colors & Identity" 
+          description="Rooted directly in the Minnesota flag. Night Blue brings trust and legibility, Water Blue adds a spark of friendly optimism, and Snow provides clean, airy space."
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <ColorSwatch name="Night Blue" hex="#001E44" className="bg-[#001E44]" textClass="text-white" />
+            <ColorSwatch name="Water Blue" hex="#5DB9FF" className="bg-[#5DB9FF]" textClass="text-[#001E44]" />
+            <ColorSwatch name="Snow Base" hex="#FFFFFF" className="bg-white" textClass="text-[#001E44]" borderClass="border border-[#001E44]/10 shadow-sm" />
+          </div>
+        </Section>
+
+        {/* 2. Typography */}
+        <Section 
+          title="Typography" 
+          description="Chillax brings a warm, uniquely geometric friendliness to the headers, while Synonym offers pristine, modern legibility for complex values data."
+        >
+          <div className="space-y-16">
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <span className="w-8 h-px bg-[#5DB9FF]"></span>
+                <span className="font-display text-sm font-semibold text-[#5DB9FF]">Headers / Chillax</span>
+              </div>
+              <div className="font-display text-[#001E44] space-y-4">
+                <div className="text-5xl font-bold tracking-tight">Support your community.</div>
+                <div className="text-3xl font-semibold">Discover verified restaurants.</div>
+                <div className="text-xl font-medium text-[#001E44]/70">Find the perfect spot for dinner tonight.</div>
+              </div>
+            </div>
+            
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <span className="w-8 h-px bg-[#5DB9FF]"></span>
+                <span className="font-display text-sm font-semibold text-[#5DB9FF]">Body / Synonym</span>
+              </div>
+              <div className="text-[#001E44] space-y-6 max-w-2xl">
+                <p className="text-lg leading-relaxed text-[#001E44]/80">
+                  We believe that spending money locally shouldn't mean compromising on what you care about. Neighbo makes it incredibly easy to find places that align with your personal values.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        {/* 3. Interactive Elements */}
+        <Section 
+          title="Interactive Details" 
+          description="Pill-shaped containers and bouncy, lifting hover states make the platform feel like a helpful assistant rather than a rigid directory."
+        >
+          <div className="space-y-12">
+            <div>
+              <h4 className="font-display text-lg font-semibold mb-6 text-[#001E44]">Primary Actions</h4>
+              <div className="flex flex-wrap gap-4">
+                <Button variant="primary">
+                  Explore the Map <MapPin size={18} />
+                </Button>
+                <Button variant="secondary">
+                  Find Restaurants <Search size={18} />
+                </Button>
+                <Button variant="outline">
+                  View Profile <ArrowRight size={18} className="arrow-icon transition-transform" />
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-display text-lg font-semibold mb-6 text-[#001E44]">Value Filters</h4>
+              <div className="flex flex-wrap gap-3">
+                <ValueTag label="Living Wage" icon={HeartHandshake} active />
+                <ValueTag label="Zero Waste" icon={Leaf} />
+                <ValueTag label="LGBTQ+ Owned" icon={Users} />
+                <ValueTag label="Accessible" />
+                <ValueTag label="Co-op Structure" />
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        {/* 4. Trust Architecture */}
+        <Section 
+          title="Trust Badges" 
+          description="The core mechanism of Neighbo. Visual distinction ensures users instantly know the difference between a self-reported claim and verified action."
+        >
+          <div className="flex flex-col gap-4 max-w-2xl">
+            <div className="bg-white p-6 rounded-2xl border border-[#001E44]/5 shadow-sm flex items-start gap-6 hover-lift">
+              <div className="mt-1"><TrustBadge tier={1} /></div>
+              <p className="text-[#001E44]/70 text-sm leading-relaxed">
+                <strong className="text-[#001E44]">Self-Attested.</strong> The business owner has claimed this value on their profile. It's a great starting point indicating intent.
+              </p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl border border-[#001E44]/5 shadow-sm flex items-start gap-6 hover-lift">
+              <div className="mt-1"><TrustBadge tier={2} /></div>
+              <p className="text-[#001E44]/70 text-sm leading-relaxed">
+                <strong className="text-[#001E44]">Community Vetted.</strong> Multiple independent users in the community have reported that this business upholds this value in practice.
+              </p>
+            </div>
+            <div className="bg-white p-6 rounded-2xl border border-[#001E44]/5 shadow-sm flex items-start gap-6 hover-lift">
+              <div className="mt-1"><TrustBadge tier={3} /></div>
+              <p className="text-[#001E44]/70 text-sm leading-relaxed">
+                <strong className="text-[#001E44]">Moderator Verified.</strong> Backed by official documentation, such as B-Corp certification or active union contracts.
+              </p>
+            </div>
+          </div>
+        </Section>
+
+        {/* 5. Inputs & Controls */}
+        <Section 
+          title="Inputs & Controls" 
+          description="Friendly, pill-shaped inputs ensure the core discovery experience feels like searching for a friend's recommendation rather than querying a database."
+        >
+          <div className="space-y-10">
+            <div>
+              <h4 className="font-display text-sm font-semibold uppercase tracking-widest text-[#5DB9FF] mb-6">Discovery Search Bar</h4>
+              <SearchBar />
+            </div>
+            
+            <div>
+              <h4 className="font-display text-sm font-semibold uppercase tracking-widest text-[#5DB9FF] mb-6">Toggles & Settings</h4>
+              <div className="flex flex-col gap-4 bg-white p-8 rounded-[2rem] border border-[#001E44]/5 shadow-sm max-w-sm">
+                <Toggle label="Show only Verified places" defaultChecked={true} />
+                <Toggle label="Open right now" />
+                <Toggle label="Wheelchair accessible" />
+              </div>
+            </div>
+          </div>
+        </Section>
+
+        {/* 6. Community Vetting */}
+        <Section 
+          title="Community Reports" 
+          description="The lifeblood of the Tier 2 trust badge. Community reports are displayed cleanly to highlight the lived experiences of neighbors."
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CommunityReport 
+              user="Sarah Jenkins"
+              initials="SJ"
+              date="October 12, 2026"
+              text="Incredible atmosphere. I asked the manager about their composting program and they actually gave me a quick tour of their back-of-house sorting. True zero waste commitment."
+              tags={["Zero Waste Verified", "Friendly Staff"]}
+            />
+            <CommunityReport 
+              user="Marcus T."
+              initials="MT"
+              date="September 28, 2026"
+              text="Can confirm they include a 20% equity charge that goes directly to the kitchen staff. It's great to see a place actually practicing living wage standards in the city."
+              tags={["Living Wage Verified", "Fair Pay"]}
+            />
+          </div>
+        </Section>
+
+        {/* 7. Business Dashboard */}
+        <Section 
+          title="Business Analytics" 
+          description="For the B2B revenue model. Dashboards translate values-alignment into actionable, premium data for restaurant owners."
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <StatCard 
+              label="Profile Views (30d)" 
+              value="2,845" 
+              trend="+14%" 
+              icon={Users} 
+            />
+            <StatCard 
+              label="Searches for 'LGBTQ+ Owned'" 
+              value="842" 
+              trend="+32%" 
+              icon={Search} 
+            />
+            <StatCard 
+              label="Community Reports" 
+              value="18" 
+              icon={MessageSquare} 
+            />
+          </div>
+        </Section>
+
+        {/* 8. Component Showcase */}
+        <Section 
+          title="Card Components" 
+          description="Putting it all together into an inviting, highly readable listing card that prioritizes values over arbitrary star ratings."
+          className="border-b-0"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <RestaurantCard 
+              name="Owamni"
+              type="Indigenous Kitchen"
+              distance="1.2 mi"
+              tier={3}
+              image="https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&q=80&w=1000"
+              values={[
+                { label: "BIPOC Owned", icon: Users },
+                { label: "Local Sourcing", icon: Leaf },
+                { label: "Living Wage", icon: HeartHandshake }
+              ]}
+            />
+            
+            <div className="flex flex-col gap-8">
+              <RestaurantCard 
+                name="Hard Times Cafe"
+                type="Worker Co-op / Vegan"
+                distance="0.4 mi"
+                tier={2}
+                image="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=1000"
+                values={[
+                  { label: "Co-op Structure" },
+                  { label: "Zero Waste" },
+                ]}
+              />
+              
+              {/* Soft Dashboard Preview */}
+              <div className="bg-[#EBF5FF] rounded-[2rem] p-8 border border-[#5DB9FF]/20 flex flex-col justify-between text-[#001E44] flex-grow">
+                 <div className="flex justify-between items-start mb-6">
+                   <div>
+                     <h4 className="font-display font-semibold text-sm text-[#5DB9FF] mb-2 flex items-center gap-2">
+                       <BadgeCheck size={16} /> Business Dashboard
+                     </h4>
+                     <p className="text-2xl font-bold tracking-tight">Neighborhood Demand</p>
+                   </div>
+                 </div>
+                 
+                 <div className="space-y-4 bg-white p-5 rounded-2xl shadow-sm border border-[#001E44]/5">
+                   <div className="flex justify-between items-center text-sm border-b border-[#001E44]/5 pb-3">
+                     <span className="font-medium text-[#001E44]/70">"Zero Waste" Searches</span>
+                     <span className="font-display font-bold text-[#5DB9FF] bg-[#5DB9FF]/10 px-2 py-1 rounded-md">+24%</span>
+                   </div>
+                   <div className="flex justify-between items-center text-sm pt-1">
+                     <span className="font-medium text-[#001E44]/70">Profile Views</span>
+                     <span className="font-display font-bold text-[#001E44]">1,204</span>
+                   </div>
+                 </div>
+              </div>
+            </div>
+          </div>
+        </Section>
+      </main>
+
+      {/* Footer */}
+      <footer className="bg-[#F8FAFC] py-12 border-t border-[#001E44]/5">
+        <div className="max-w-6xl mx-auto px-6 lg:px-12 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2">
+            <Sparkles className="text-[#5DB9FF]" size={18} />
+            <span className="font-display font-bold text-lg text-[#001E44]">Neighbo</span>
+          </div>
+          <p className="text-sm font-medium text-[#001E44]/40">
+            Internal Documentation / Minneapolis, MN
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}
