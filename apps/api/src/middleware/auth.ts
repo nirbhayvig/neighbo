@@ -1,13 +1,14 @@
-import type { DecodedIdToken } from "firebase-admin/auth"
-import type { Context, Next } from "hono"
+import { createMiddleware } from "hono/factory"
 import { HTTPException } from "hono/http-exception"
+import type { AppEnv } from "../lib/types"
 import { auth } from "../lib/firebase"
 
-export type AuthVariables = {
-  user: DecodedIdToken
-}
-
-export async function authMiddleware(c: Context, next: Next) {
+/**
+ * Firebase ID token verification middleware.
+ * Extracts the Bearer token from the Authorization header, verifies it with
+ * firebase-admin, and sets the decoded token as c.var.user for downstream handlers.
+ */
+export const authMiddleware = createMiddleware<AppEnv>(async (c, next) => {
   const authHeader = c.req.header("Authorization")
 
   if (!authHeader?.startsWith("Bearer ")) {
@@ -23,4 +24,4 @@ export async function authMiddleware(c: Context, next: Next) {
   } catch {
     throw new HTTPException(401, { message: "Invalid or expired token" })
   }
-}
+})

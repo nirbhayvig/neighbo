@@ -20,8 +20,8 @@
     "cap:ios": "bun run --filter @neighbo/web cap:ios"
   },
   "devDependencies": {
-    "@biomejs/biome": "latest",
-    "typescript": "latest"
+    "@biomejs/biome": "2.4.4",
+    "typescript": "5.9.3"
   },
   "trustedDependencies": [
     "@firebase/util",

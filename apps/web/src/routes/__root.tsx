@@ -1,11 +1,14 @@
 import { QueryClient } from "@tanstack/react-query"
-import { Outlet, createRootRouteWithContext } from "@tanstack/react-router"
-import { useEffect, useState } from "react"
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
+import { Outlet, createRootRouteWithContext, useRouter } from "@tanstack/react-router"
+import { TanStackRouterDevtools } from "@tanstack/router-devtools"
 import type { User } from "firebase/auth"
+import { useEffect } from "react"
 import { onAuthChange } from "../lib/auth"
 
-interface RouterContext {
+export interface RouterContext {
   queryClient: QueryClient
+  user: User | null
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
@@ -13,24 +16,22 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 })
 
 function RootLayout() {
-  const [, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
+  // Keep the router context in sync with ongoing auth state changes
+  // (e.g. user signs in or signs out after initial load).
   useEffect(() => {
-    const unsubscribe = onAuthChange((firebaseUser) => {
-      setUser(firebaseUser)
-      setLoading(false)
+    return onAuthChange(() => {
+      router.invalidate()
     })
-    return unsubscribe
-  }, [])
+  }, [router])
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-muted-foreground text-sm">Loading...</div>
-      </div>
-    )
-  }
-
-  return <Outlet />
+  return (
+    <>
+      <Outlet />
+      {/* Both devtools panels are automatically stripped from production builds */}
+      <TanStackRouterDevtools position="bottom-right" />
+      <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+    </>
+  )
 }

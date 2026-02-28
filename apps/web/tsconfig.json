@@ -11,6 +11,6 @@
       "@neighbo/api": ["../api/src/app.ts"]
     }
   },
-  "include": ["src/**/*", "vite.config.ts", "capacitor.config.ts", "../api/src/**/*"],
+  "include": ["src/**/*", "vite.config.ts", "capacitor.config.ts"],
   "exclude": ["node_modules", "dist", "android", "ios"]
 }
