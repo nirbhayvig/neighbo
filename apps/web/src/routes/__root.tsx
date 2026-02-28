@@ -1,10 +1,8 @@
-import { QueryClient } from "@tanstack/react-query"
+import type { QueryClient } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
-import { Outlet, createRootRouteWithContext, useRouter } from "@tanstack/react-router"
+import { Outlet, createRootRouteWithContext } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/router-devtools"
 import type { User } from "firebase/auth"
-import { useEffect } from "react"
-import { onAuthChange } from "../lib/auth"
 
 export interface RouterContext {
   queryClient: QueryClient
@@ -16,17 +14,11 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 })
 
 function RootLayout() {
-  const router = useRouter()
-
-  // Keep the router context in sync with ongoing auth state changes
-  // (e.g. user signs in or signs out after initial load).
-  useEffect(() => {
-    return onAuthChange(() => {
-      router.invalidate()
-    })
-  }, [router])
-
   return (
-    <Outlet />
+    <>
+      <Outlet />
+      <TanStackRouterDevtools />
+      <ReactQueryDevtools />
+    </>
   )
 }
