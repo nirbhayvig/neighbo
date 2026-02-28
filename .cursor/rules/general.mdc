@@ -1,0 +1,32 @@
+---
+alwaysApply: true
+---
+
+# Neighbo — Project Overview
+
+## What Is This App?
+Neighbo is a **values-based restaurant and business discovery platform** (mobile-first PWA). Users filter local restaurants by values (LGBTQ+ friendly, sustainable, Black-owned, union labor, etc.) and see tiered certification badges (Tier 1: self-attested, Tier 2: community-vetted, Tier 3: moderator-verified). Businesses pay for advertising and analytics; consumers always use the platform free.
+
+**Target market:** Twin Cities (Minneapolis/St. Paul), Minnesota — pilot market.
+**Full business context:** @docs/business-context.md
+
+## Monorepo Structure
+```
+apps/web/       # React 19 + TanStack Router + Capacitor (iOS/Android)
+apps/api/       # Hono.js REST/RPC API (port 3001)
+packages/shared/ # Shared Zod schemas + TypeScript types
+```
+
+## Key Commands
+```bash
+bun run dev          # All workspaces
+bun run dev:web      # Web only (port 5173)
+bun run dev:api      # API only (port 3001, hot-reload)
+bun run typecheck    # Type-check all workspaces
+bunx biome check --write .  # Auto-fix lint + format
+```
+
+## Code Style (Biome-enforced)
+- 2-space indent, 100 char line width, double quotes, no semicolons, ES5 trailing commas
+- `verbatimModuleSyntax` enabled — use `import type` for type-only imports
+- Do NOT edit `src/components/ui/` (shadcn/ui generated) or `routeTree.gen.ts` (auto-generated)

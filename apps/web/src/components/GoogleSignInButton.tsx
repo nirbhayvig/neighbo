@@ -1,7 +1,9 @@
+import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { signInWithGoogle } from "../lib/auth"
 
 export function GoogleSignInButton() {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -10,6 +12,7 @@ export function GoogleSignInButton() {
     setError(null)
     try {
       await signInWithGoogle()
+      await navigate({ to: "/home" })
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign in failed")
     } finally {

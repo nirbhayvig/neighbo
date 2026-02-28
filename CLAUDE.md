@@ -4,6 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
+Neighbo is a **values-based restaurant and business discovery platform** — a mobile-first PWA where users find local businesses whose values align with their own (LGBTQ+ friendly, sustainable, Black-owned, etc.) via a tiered certification system. Revenue comes from business advertising and analytics subscriptions; consumers always use the platform for free.
+
+@docs/business-context.md
+
 Neighbo is a full-stack web/mobile app using a Bun monorepo with three workspaces:
 - `apps/web` — React frontend with Capacitor for native mobile
 - `apps/api` — Hono.js backend API
