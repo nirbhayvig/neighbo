@@ -1,0 +1,127 @@
+---
+globs:
+  - "apps/api/src/**/*.ts"
+alwaysApply: false
+---
+
+# API Rules — `apps/api`
+
+## Purpose
+Rules for the Hono.js backend API. This API is consumed exclusively by `apps/web` via type-safe RPC — every design decision here has a direct impact on the frontend.
+
+## Backend-Frontend Type Contract
+
+**The single most important rule:** `apps/api/src/app.ts` exports `AppType`. The frontend imports this type to get fully type-safe API calls with zero code duplication.
+
+```typescript
+// apps/api/src/app.ts — ALWAYS export AppType
+const app = new Hono<AppEnv>()
+  .route("/health", healthRoute)
+  // ... other routes
+
+export type AppType = typeof app  // ← frontend imports this
+export default app
+```
+
+- Every new route added here **automatically becomes type-safe on the frontend** — no manual type duplication
+- Never change the shape of a response without updating consuming `useQuery` calls in `apps/web`
+- Route paths must stay consistent — the frontend Vite proxy maps `/api/*` → `localhost:3001`
+
+## Route Patterns
+
+### File Structure
+- Each feature gets its own file in `apps/api/src/routes/`
+- Register routes in `apps/api/src/app.ts` via `.route()`
+
+### Hono Route Convention
+```typescript
+import { Hono } from "hono"
+import type { AppEnv } from "../lib/types"
+
+const myRoute = new Hono<AppEnv>()
+
+myRoute.get("/", async (c) => {
+  const user = c.var.user  // Firebase DecodedIdToken (set by auth middleware)
+  return c.json({ ... })
+})
+
+export default myRoute
+```
+
+### Zod Validation
+Use `@hono/zod-validator` for all request validation — never trust unvalidated input:
+```typescript
+import { zValidator } from "@hono/zod-validator"
+import { createUserSchema } from "@neighbo/shared/schemas"
+
+myRoute.post("/", zValidator("json", createUserSchema), async (c) => {
+  const body = c.req.valid("json")  // fully typed
+  return c.json({ ... })
+})
+```
+
+## Authentication
+
+- Auth middleware lives in `apps/api/src/middleware/auth.ts`
+- It verifies Firebase ID tokens from the `Authorization: Bearer <token>` header
+- After middleware runs, `c.var.user` is a Firebase `DecodedIdToken`
+- Apply auth middleware to any route that requires a logged-in user
+
+```typescript
+import { authMiddleware } from "../middleware/auth"
+
+// Protected route
+myRoute.use("*", authMiddleware)
+
+// Public route — omit middleware
+publicRoute.get("/health", (c) => c.json({ ok: true }))
+```
+
+## Shared Schemas
+
+**ALWAYS import Zod schemas from `@neighbo/shared/schemas`** — never redeclare schemas that already exist in the shared package. Both the API and web app share these schemas, ensuring consistent validation.
+
+```typescript
+// ✅ Correct
+import { userSchema, createUserSchema } from "@neighbo/shared/schemas"
+
+// ❌ Wrong — do not duplicate schemas
+const userSchema = z.object({ ... })
+```
+
+## AppEnv Type
+
+All Hono instances must be typed with `AppEnv` from `apps/api/src/lib/types.ts`:
+
+```typescript
+import type { AppEnv } from "../lib/types"
+const app = new Hono<AppEnv>()
+```
+
+`AppEnv` makes `c.var.user` typed as `DecodedIdToken` throughout the app.
+
+## Firebase Admin SDK
+
+- Initialized once in `apps/api/src/lib/firebase.ts`
+- Exports: `auth` (Firebase Admin Auth), `firestore` (Firestore instance)
+- Import from there — never re-initialize Firebase Admin
+
+```typescript
+import { auth, firestore } from "../lib/firebase"
+```
+
+## Neighbo Domain Rules
+
+When implementing Neighbo features, keep these business rules in mind:
+
+- **Certification tiers** — Tier 1 (self-attested), Tier 2 (3+ community reports), Tier 3 (moderator-verified). Tier changes must be logged with a timestamp.
+- **Community reports** — one report per user per restaurant per month (enforce at API level)
+- **Analytics data** — all analytics must be aggregated and anonymized; never expose raw user-level data
+- **Values filtering** — filter logic uses AND semantics (a restaurant must match ALL selected values)
+
+## Reference Files
+- App entry + AppType export: @apps/api/src/app.ts
+- Auth middleware: @apps/api/src/middleware/auth.ts
+- Firebase admin: @apps/api/src/lib/firebase.ts
+- AppEnv type: @apps/api/src/lib/types.ts
+- Example route: @apps/api/src/routes/health.ts
