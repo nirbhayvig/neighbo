@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router"
+import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { GoogleSignInButton } from "../components/GoogleSignInButton"
 import type { RouterContext } from "./__root"
 
@@ -19,6 +19,17 @@ function LoginPage() {
         <p className="text-muted-foreground mt-2 text-lg">Sign in to get started</p>
       </div>
       <GoogleSignInButton />
+      <footer className="absolute bottom-6 flex gap-4 text-xs text-muted-foreground">
+        <Link to="/privacy" className="hover:text-foreground transition-colors">
+          Privacy
+        </Link>
+        <Link to="/terms" className="hover:text-foreground transition-colors">
+          Terms
+        </Link>
+        <Link to="/support" className="hover:text-foreground transition-colors">
+          Support
+        </Link>
+      </footer>
     </div>
   )
 }
