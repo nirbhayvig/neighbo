@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { GoogleSignInButton } from "../components/GoogleSignInButton"
 
-export const Route = createFileRoute("/" as any)({
+export const Route = createFileRoute("/")({
   component: HomePage,
 })
 
