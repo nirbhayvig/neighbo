@@ -26,6 +26,7 @@ out/
 # Firebase
 **/service-account.json
 **/serviceAccountKey.json
+*-firebase-adminsdk-*.json
 .firebase/
 firebase-debug.log
 firestore-debug.log
