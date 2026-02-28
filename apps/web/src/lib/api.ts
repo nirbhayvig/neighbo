@@ -1,5 +1,5 @@
-import { hc } from "hono/client"
 import type { AppType } from "@neighbo/api"
+import { hc } from "hono/client"
 import { getIdToken } from "./auth"
 
 /**

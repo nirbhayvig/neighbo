@@ -1,7 +1,10 @@
 {
   "name": "neighbo",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "bun run --filter '*' dev",
     "dev:api": "bun run --filter @neighbo/api dev",
