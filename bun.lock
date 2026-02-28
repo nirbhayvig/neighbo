@@ -16,6 +16,7 @@
         "@hono/zod-validator": "0.7.6",
         "@neighbo/shared": "workspace:*",
         "firebase-admin": "13.7.0",
+        "geofire-common": "^6.0.0",
         "hono": "4.12.3",
         "zod": "4.3.6",
       },
@@ -906,6 +907,8 @@
     "gcp-metadata": ["gcp-metadata@8.1.2", "", { "dependencies": { "gaxios": "^7.0.0", "google-logging-utils": "^1.0.0", "json-bigint": "^1.0.0" } }, "sha512-zV/5HKTfCeKWnxG0Dmrw51hEWFGfcF2xiXqcA3+J90WDuP0SvoiSO5ORvcBsifmx/FoIjgQN3oNOGaQ5PhLFkg=="],
 
     "gensync": ["gensync@1.0.0-beta.2", "", {}, "sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg=="],
+
+    "geofire-common": ["geofire-common@6.0.0", "", {}, "sha512-dQ2qKWMtHUEKT41Kw4dmAtMjvEyhWv1XPnHHlK5p5l5+0CgwHYQjhonGE2QcPP60cBYijbJ/XloeKDMU4snUQg=="],
 
     "get-caller-file": ["get-caller-file@2.0.5", "", {}, "sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg=="],
 

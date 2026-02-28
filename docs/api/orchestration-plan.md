@@ -10,34 +10,41 @@ This document instructs a manager agent on how to spawn and coordinate subagents
 ## Parallelism Overview
 
 ```
-Phase 1 ────────────────────────────── [2 agents, PARALLEL]
+Phase 0 ────────────────────────────── [2 agents, PARALLEL]
   A: Shared package (types + schemas)
   B: API utilities + middleware
+
+         │ (Phase 1 depends on Phase 0-A only)
+         ▼
+
+Phase 1 ────────────────────────────── [1 agent, depends on Phase 0-A]
+  SCAFFOLDING: all stub routes + app.ts wiring
+  ⚑ Frontend is unblocked after this phase completes
 
          │
          ▼
 
 Phase 2 ────────────────────────────── [3 agents, PARALLEL, depends on Phase 1]
-  A: me.ts (user profile routes)
-  B: values.ts (values list route)
-  C: restaurants.ts (core + pre-wire sub-route imports)
+  A: me.ts (replace stub with full implementation)
+  B: values.ts (replace stub with full implementation)
+  C: restaurants.ts (replace stub with full implementation)
 
          │
          ▼
 
 Phase 3 ────────────────────────────── [3 agents, PARALLEL, depends on Phase 2]
-  A: reports.ts
-  B: certification.ts
-  C: business.ts (claim routes + my-restaurant)
+  A: reports.ts (replace stub)
+  B: certification.ts (replace stub)
+  C: business-claims.ts + business.ts (replace stubs)
 
          │
          ▼
 
 Phase 4 ────────────────────────────── [1 agent, depends on Phase 3]
-  A: app.ts integration + firestore.indexes.json + final validation
+  A: firestore.indexes.json + final validation
 ```
 
-**Total agents across all phases:** 9
+**Total agents across all phases:** 10
 **Max agents at once:** 3 (Phases 2 and 3)
 
 ---
@@ -54,19 +61,19 @@ Verify it appears in `apps/api/package.json` under `dependencies`.
 
 ---
 
-## Phase 1 — Foundation [2 agents, PARALLEL]
+## Phase 0 — Foundation [2 agents, PARALLEL]
 
-**Run both agents simultaneously. Phase 2 cannot start until BOTH complete.**
+**Run both agents simultaneously. Phase 1 cannot start until Phase 0-A completes (Phase 0-B can finish concurrently with Phase 1).**
 
 ---
 
-### Phase 1-A: Shared Package Update
+### Phase 0-A: Shared Package Update
 
 **Agent count:** 1
-**Isolation:** worktree (to avoid conflicts with Phase 1-B)
+**Isolation:** worktree (to avoid conflicts with Phase 0-B)
 
 **Task:**
-Rewrite and extend the `packages/shared/src/` directory to match the Neighbo data model. The current shared package has generic user types that must be replaced.
+Rewrite and extend `packages/shared/src/` to match the Neighbo data model. The current shared package has generic user types that must be replaced.
 
 **Files to create/modify:**
 
@@ -130,12 +137,12 @@ Must pass with 0 errors.
 
 ---
 
-### Phase 1-B: API Utilities + Middleware
+### Phase 0-B: API Utilities + Middleware
 
 **Agent count:** 1
 **Isolation:** worktree (to avoid conflicts with Phase 1-A)
 
-**Note:** These files do NOT import from `@neighbo/shared`. They only depend on `firebase-admin`, `hono`, and `geofire-common`.
+**Note:** These files do NOT import from `@neighbo/shared`. They only depend on `firebase-admin`, `hono`, and `geofire-common`. Phase 0-B can run concurrently with Phase 1 (scaffolding).
 
 **Files to create:**
 
@@ -205,10 +212,112 @@ Expect errors from missing route files — that is OK. Only check that the 3 new
 
 ---
 
+## Phase 1 — Scaffolding [1 agent, depends on Phase 0-A]
+
+**Depends on:** Phase 0-A complete (shared package must be published/linked before stubs can import from `@neighbo/shared`).**After this phase, the frontend is unblocked.** Phase 0-B (utilities) can run concurrently with this phase.
+
+**Agent count:** 1
+
+**Task:** Create all route files as typed stubs and wire them into `app.ts`. Every route is defined with the correct HTTP method, path, auth middleware, and Zod validator, but returns mock data instead of querying Firestore. The goal is a fully-typed `AppType` export that the frontend can import immediately.
+
+**Files to create:**
+
+1. **`apps/api/src/routes/me.ts`** — all 6 endpoints as stubs
+   - `GET /` → mock User object (with all fields from `User` type)
+   - `PATCH /` → validate with `updateUserSchema`, return mock User
+   - `GET /favorites` → `{ favorites: [], nextCursor: null }`
+   - `POST /favorites/:restaurantId` → `{ success: true }`
+   - `DELETE /favorites/:restaurantId` → `new Response(null, { status: 204 })`
+   - `GET /reports` → `{ reports: [], nextCursor: null }`
+
+2. **`apps/api/src/routes/values.ts`** — 1 endpoint
+   - `GET /` → `{ values: [] }`
+
+3. **`apps/api/src/routes/restaurants.ts`** — 6 endpoints + sub-route mounts
+   - `GET /nearby` → `{ restaurants: [] }`
+   - `GET /` → `{ restaurants: [STUB_RESTAURANT], nextCursor: null }`
+   - `GET /:id` → `STUB_RESTAURANT`
+   - `POST /` → validate with `createRestaurantSchema`, return `STUB_RESTAURANT` (201)
+   - `PATCH /:id` → validate with `updateRestaurantSchema`, return `STUB_RESTAURANT`
+   - `DELETE /:id` → 204
+   - `.route("/:id/reports", reportRoutes)`
+   - `.route("/:id/certification", certificationRoutes)`
+   - `.route("/:id", claimRoutes)`
+
+4. **`apps/api/src/routes/reports.ts`** — 3 endpoints
+   - `GET /mine` → `{ hasActiveReport: false, reportedValues: [], nextReportAllowedAt: null }` (**register before `GET /`**)
+   - `GET /` → `{ valueCounts: {}, totalReports: 0 }`
+   - `POST /` → validate with `createReportSchema`, return mock Report
+
+5. **`apps/api/src/routes/certification.ts`** — 3 endpoints
+   - `GET /` → mock Certification object
+   - `POST /self-attest` → validate with `selfAttestSchema`, return mock Certification
+   - `POST /upload-evidence` → validate with `uploadEvidenceSchema`, return `{ success: true, message: "Evidence submitted for review" }`
+
+6. **`apps/api/src/routes/business-claims.ts`** — 2 endpoints (mounted at `/:id` in restaurants)
+   - `POST /claim` → validate with `createClaimSchema`, return mock BusinessClaim
+   - `GET /claim` → return mock BusinessClaim
+
+7. **`apps/api/src/routes/business.ts`** — 1 endpoint
+   - `GET /my-restaurant` → `{ restaurant: null }`
+
+8. **`apps/api/src/app.ts`** — update to mount all new routes and add global error handler:
+   ```typescript
+   import { Hono } from "hono"
+   import { logger } from "hono/logger"
+   import { cors } from "hono/cors"
+   import { HTTPException } from "hono/http-exception"
+   import { healthRoutes } from "./routes/health"
+   import { meRoutes } from "./routes/me"
+   import { restaurantRoutes } from "./routes/restaurants"
+   import { valuesRoutes } from "./routes/values"
+   import { businessRoutes } from "./routes/business"
+   import type { AppEnv } from "./lib/types"
+
+   const app = new Hono<AppEnv>()
+     .use(logger())
+     .use("*", cors({ origin: process.env.CORS_ORIGIN ?? "http://localhost:5173" }))
+     .route("/health", healthRoutes)
+     .route("/me", meRoutes)
+     .route("/restaurants", restaurantRoutes)
+     .route("/values", valuesRoutes)
+     .route("/business", businessRoutes)
+
+   app.onError((err, c) => {
+     if (err instanceof HTTPException) {
+       return c.json({ error: err.message }, err.status)
+     }
+     console.error(err)
+     return c.json({ error: "Internal server error" }, 500)
+   })
+
+   export type AppType = typeof app
+   export default app
+   ```
+
+**Validation:**
+```bash
+cd /Users/nirbhayvig/Repositories/Misc/neighbo
+bun run typecheck
+```
+Must pass with 0 errors across all packages.
+
+**Review criteria:**
+- Every route from `docs/api-features-overview.md §4` is registered
+- Auth middleware applied to all routes that require it
+- Zod validators applied to all routes that accept a request body or query params
+- `/restaurants/nearby` registered before `/restaurants/:id`
+- `/restaurants/:id/reports/mine` registered before `/restaurants/:id/reports`
+- `AppType` chain is unbroken in `app.ts`
+- `bun run typecheck` exits 0 — frontend team can now import `AppType`
+
+---
+
 ## Phase 2 — Route Implementations [3 agents, PARALLEL]
 
-**Depends on:** Phase 1-A AND Phase 1-B both complete.
+**Depends on:** Phase 1 (scaffolding) AND Phase 0-B (utilities) both complete.
 **Run all 3 agents simultaneously. Phase 3 cannot start until ALL complete.**
+**Each agent REPLACES a stub file with a full Firestore implementation. Do NOT modify `restaurants.ts` in Phase 2-A or 2-B.**
 
 ---
 
@@ -216,9 +325,9 @@ Expect errors from missing route files — that is OK. Only check that the 3 new
 
 **Agent count:** 1
 
-**File to create:** `apps/api/src/routes/me.ts`
+**File to replace:** `apps/api/src/routes/me.ts` (stub → full implementation)
 
-This file exports a single `Hono<AppEnv>` instance with all user profile endpoints. It must import `authMiddleware` from `../middleware/auth` and apply it to every route.
+Replace the stub with full Firestore logic. The route structure (methods, paths, validators, auth) is already correct — only the handler bodies change.
 
 **Endpoints to implement:**
 
@@ -299,9 +408,7 @@ No errors in me.ts.
 
 **Agent count:** 1
 
-**File to create:** `apps/api/src/routes/values.ts`
-
-This is the simplest route file — one public endpoint.
+**File to replace:** `apps/api/src/routes/values.ts` (stub → full implementation)
 
 **Endpoints to implement:**
 
@@ -327,24 +434,15 @@ bun run typecheck --filter @neighbo/api 2>&1 | grep "routes/values"
 
 **Agent count:** 1
 
-**File to create:** `apps/api/src/routes/restaurants.ts`
+**File to replace:** `apps/api/src/routes/restaurants.ts` (stub → full implementation)
 
-This is the most complex route file. It contains the core restaurant routes AND pre-wires the sub-route mounting points for reports, certification, and business claims (Phase 3 agents will create those files, but the `.route()` calls must exist here).
+This is the most complex route file. The sub-route imports (`reportRoutes`, `certificationRoutes`, `claimRoutes`) and `.route()` mounts already exist in the stub — do NOT remove them. Only replace the handler bodies for the 6 core restaurant endpoints.
 
-**CRITICAL — Route Order:** Register `GET /nearby` BEFORE `GET /:id`, otherwise `nearby` matches as `:id`.
+**CRITICAL — Route Order:** `GET /nearby` is already before `GET /:id` in the stub — preserve this order.
 
-**Imports required:**
-```typescript
-import { reportRoutes } from "./reports"           // Phase 3-A will create this
-import { certificationRoutes } from "./certification" // Phase 3-B will create this
-import { claimRoutes } from "./business-claims"    // Phase 3-C will create this
-```
-For Phase 2, create stub files for these imports so the file compiles:
-- `apps/api/src/routes/reports.ts` — stub exporting `export const reportRoutes = new Hono<AppEnv>()`
-- `apps/api/src/routes/certification.ts` — stub
-- `apps/api/src/routes/business-claims.ts` — stub
+**Do NOT modify:** The sub-route `.route()` calls at the bottom (`/:id/reports`, `/:id/certification`, `/:id`). Phase 3 agents own those files.
 
-**Endpoints to implement:**
+**Endpoints to implement (replace stub handlers):**
 
 1. **`GET /nearby`**
    - Public, no auth
@@ -429,10 +527,10 @@ bun run typecheck --filter @neighbo/api 2>&1 | grep "routes/restaurants"
 
 ## Phase 3 — Sub-Route Implementations [3 agents, PARALLEL]
 
-**Depends on:** Phase 2-C complete (restaurants.ts scaffold exists with stub imports).
+**Depends on:** Phase 2-C complete.
 **Run all 3 agents simultaneously. Phase 4 cannot start until ALL complete.**
 
-Each agent replaces a stub file with a full implementation. The `.route()` calls in `restaurants.ts` already wire these in — agents must NOT modify `restaurants.ts`.
+Each agent replaces a stub with a full Firestore implementation. The `.route()` calls in `restaurants.ts` already wire these in — agents must NOT modify `restaurants.ts`.
 
 ---
 
@@ -440,7 +538,7 @@ Each agent replaces a stub file with a full implementation. The `.route()` calls
 
 **Agent count:** 1
 
-**File to modify:** `apps/api/src/routes/reports.ts` (replace stub)
+**File to replace:** `apps/api/src/routes/reports.ts` (stub → full implementation)
 
 This route is mounted at `/:id/reports` inside `restaurants.ts`. The `:id` param is the restaurant ID, accessible via `c.req.param("id")`.
 
@@ -495,7 +593,7 @@ bun run typecheck --filter @neighbo/api 2>&1 | grep "routes/reports"
 
 **Agent count:** 1
 
-**File to modify:** `apps/api/src/routes/certification.ts` (replace stub)
+**File to replace:** `apps/api/src/routes/certification.ts` (stub → full implementation)
 
 Mounted at `/:id/certification` inside `restaurants.ts`.
 
@@ -544,9 +642,9 @@ bun run typecheck --filter @neighbo/api 2>&1 | grep "routes/certification"
 
 **Agent count:** 1
 
-**Files to create/modify:**
-- `apps/api/src/routes/business-claims.ts` (replace stub) — claim routes mounted inside restaurants
-- `apps/api/src/routes/business.ts` (NEW) — top-level `/business` routes
+**Files to replace:**
+- `apps/api/src/routes/business-claims.ts` (stub → full implementation) — claim routes mounted inside restaurants
+- `apps/api/src/routes/business.ts` (stub → full implementation) — top-level `/business` routes
 
 **`business-claims.ts`** — mounted at `/:id` inside restaurants:
 
@@ -588,48 +686,13 @@ bun run typecheck --filter @neighbo/api 2>&1 | grep -E "routes/business"
 
 ---
 
-## Phase 4 — Integration & Validation [1 agent]
+## Phase 4 — Final Validation [1 agent]
 
-**Depends on:** Phase 3 complete (ALL sub-route files implemented).
+**Depends on:** Phase 3 complete (ALL sub-route files fully implemented).
 
 **Agent count:** 1
 
-**Task:** Wire all routes into `app.ts`, add the error handler, create `firestore.indexes.json`, and validate the full API typechecks cleanly.
-
-**`apps/api/src/app.ts`** — modify to:
-
-```typescript
-import { Hono } from "hono"
-import { logger } from "hono/logger"
-import { cors } from "hono/cors"
-import { HTTPException } from "hono/http-exception"
-import { healthRoutes } from "./routes/health"
-import { meRoutes } from "./routes/me"
-import { restaurantRoutes } from "./routes/restaurants"
-import { valuesRoutes } from "./routes/values"
-import { businessRoutes } from "./routes/business"
-import type { AppEnv } from "./lib/types"
-
-const app = new Hono<AppEnv>()
-  .use(logger())
-  .use("*", cors({ origin: process.env.CORS_ORIGIN ?? "http://localhost:5173" }))
-  .route("/health", healthRoutes)
-  .route("/me", meRoutes)
-  .route("/restaurants", restaurantRoutes)
-  .route("/values", valuesRoutes)
-  .route("/business", businessRoutes)
-
-app.onError((err, c) => {
-  if (err instanceof HTTPException) {
-    return c.json({ error: err.message }, err.status)
-  }
-  console.error(err)
-  return c.json({ error: "Internal server error" }, 500)
-})
-
-export type AppType = typeof app
-export default app
-```
+**Task:** `app.ts` and all routes are already wired (done in Phase 1 scaffolding). This phase creates `firestore.indexes.json` and validates the full API typechecks cleanly with no lint issues.
 
 **`firestore.indexes.json`** — create at `/Users/nirbhayvig/Repositories/Misc/neighbo/firestore.indexes.json` with all 8 composite indexes as specified in `docs/api/implementation-plan.md §13`.
 
@@ -660,15 +723,16 @@ bun run typecheck
 
 ## Handoff Notes for Manager Agent
 
-1. **Merge strategy:** Phases 1, 2, and 3 are run in worktrees. After each phase's agents complete, merge their changes back to the working branch before starting the next phase.
+1. **Frontend unblocking:** Phase 1 (scaffolding) is the critical milestone. Once `bun run typecheck` passes after Phase 1, hand off `AppType` access to the frontend team — they can begin building pages immediately with full type safety.
 
-2. **Stub file cleanup:** Phase 2-C creates stub files for `reports.ts`, `certification.ts`, and `business-claims.ts`. Phase 3 agents replace these stubs. The manager must ensure Phase 3 agents are handed the correct file paths and told to REPLACE (not append to) the stubs.
+2. **Merge strategy:** Phases 0, 1, 2, and 3 use worktrees where needed. After each phase's agents complete, merge their changes back to the working branch before starting the next phase.
 
-3. **Conflict risk:** The only file touched by multiple phases is `restaurants.ts`:
-   - Phase 2-C creates it fully
-   - Phase 3 agents must NOT touch it
-   - Communicate this constraint explicitly to Phase 3 agents
+3. **Stub replacement:** Phase 2 and Phase 3 agents REPLACE stub files, not append to them. Communicate this explicitly. The route structure (methods, paths, validators, auth) must not change — only handler bodies are rewritten.
 
-4. **Type errors between phases:** After Phase 1 completes, Phase 2 agents may see type errors related to imports from `@neighbo/shared` until the shared package is published/linked. Ensure the monorepo workspace links are correct before Phase 2 starts.
+4. **Conflict risk:** `restaurants.ts` is created in Phase 1 (scaffolding) and replaced in Phase 2-C. Phase 3 agents must NOT touch it. Communicate this constraint explicitly to Phase 3 agents.
 
-5. **Environment:** All agents operate on the same repo at `/Users/nirbhayvig/Repositories/Misc/neighbo`. Firebase credentials are in `apps/api/.env` — agents should NOT modify `.env` files.
+5. **Phase 0-B concurrency:** Phase 0-B (utilities: `geo.ts`, `pagination.ts`, `ownership.ts`) does not depend on the shared package and can run concurrently with Phase 1 (scaffolding). The manager may overlap these to save time.
+
+6. **Type errors between phases:** Phase 1 and Phase 2 agents import from `@neighbo/shared`. Ensure the monorepo workspace links are correct before Phase 1 starts (run `bun install` after Phase 0-A completes).
+
+7. **Environment:** All agents operate on the same repo at `/Users/nirbhayvig/Repositories/Misc/neighbo`. Firebase credentials are in `apps/api/.env` — agents should NOT modify `.env` files.

@@ -1,15 +1,14 @@
-export type UserRole = "admin" | "member"
+export type UserType = "user" | "business"
 
-export interface User {
+export type User = {
   uid: string
   email: string
   displayName: string | null
   photoURL: string | null
-  role: UserRole
+  userType: UserType
+  valuePreferences: string[]
+  claimedRestaurantId: string | null
+  reportCount: number
   createdAt: string
   updatedAt: string
-}
-
-export interface UserProfile extends User {
-  // Extend with app-specific profile fields here
 }

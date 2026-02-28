@@ -4,15 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev":       "bun --watch src/index.ts",
-    "build":     "bun build src/index.ts --outdir dist --target bun --minify",
-    "start":     "bun dist/index.js",
+    "dev": "bun --watch src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun --minify",
+    "start": "bun dist/index.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@neighbo/shared": "workspace:*",
     "@hono/zod-validator": "0.7.6",
+    "@neighbo/shared": "workspace:*",
     "firebase-admin": "13.7.0",
+    "geofire-common": "^6.0.0",
     "hono": "4.12.3",
     "zod": "4.3.6"
   },

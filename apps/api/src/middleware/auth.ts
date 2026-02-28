@@ -1,7 +1,7 @@
 import { createMiddleware } from "hono/factory"
 import { HTTPException } from "hono/http-exception"
-import type { AppEnv } from "../lib/types"
 import { auth } from "../lib/firebase"
+import type { AppEnv } from "../lib/types"
 
 /**
  * Firebase ID token verification middleware.

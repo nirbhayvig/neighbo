@@ -892,54 +892,122 @@ The following composite indexes must be created in Firestore (via Firebase Conso
 
 ---
 
-## 14. Implementation Order
+## 14. API Scaffolding (Phase 0)
 
-Implement in this sequence to ensure each phase is functional before moving on:
+The frontend is built in parallel with the backend. Before any Firestore logic is written, all routes must exist as stubs that return correctly-typed mock responses. This gives the frontend team a fully-wired `AppType` to build against immediately.
 
-### Phase 1: Foundation
-1. Update `packages/shared` — rewrite user types/schemas, add all new domain schemas and types, update barrel exports
-2. Install `geofire-common` dependency
-3. Create `apps/api/src/lib/geo.ts`
-4. Create `apps/api/src/lib/pagination.ts`
-5. Create `apps/api/src/middleware/ownership.ts`
+### What a stub route looks like
 
-### Phase 2: User Routes
-6. Implement `apps/api/src/routes/me.ts` (all 6 endpoints)
-7. Update `apps/api/src/app.ts` to mount me routes and add global error handler
-8. Test: GET /me, PATCH /me, favorites, reports
+A stub registers the correct HTTP method, path, auth middleware, and Zod validator, but returns hardcoded mock data instead of querying Firestore.
 
-### Phase 3: Values Route
-9. Implement `apps/api/src/routes/values.ts`
-10. Mount in `app.ts`
+**Rules:**
+- All routes are registered (correct method + path)
+- Auth middleware applied where required
+- Zod validators applied where required — request validation is live from day 1
+- Responses satisfy the correct TypeScript type (use `satisfies`)
+- No Firestore calls, no business logic, no side effects
 
-### Phase 4: Restaurants
-11. Implement `apps/api/src/routes/restaurants.ts` — basic CRUD first (GET /:id, POST, DELETE)
-12. Add list/search (`GET /restaurants`) with value + city filtering
-13. Add nearby (`GET /restaurants/nearby`) with geohash queries
-14. Mount in `app.ts`
+**Example:**
 
-### Phase 5: Reports
-15. Implement `apps/api/src/routes/reports.ts`
-16. Integrate with restaurant route nesting
+```typescript
+import { Hono } from "hono"
+import { zValidator } from "@hono/zod-validator"
+import { authMiddleware } from "../middleware/auth"
+import { createRestaurantSchema, updateRestaurantSchema } from "@neighbo/shared/schemas"
+import type { Restaurant } from "@neighbo/shared/types"
+import type { AppEnv } from "../lib/types"
 
-### Phase 6: Certification
-17. Implement `apps/api/src/routes/certification.ts`
-18. Integrate with restaurant route nesting
+const STUB: Restaurant = {
+  id: "stub-id",
+  googlePlaceId: "ChIJ_stub",
+  name: "Stub Restaurant",
+  city: "Minneapolis",
+  values: [],
+  certTierMax: 1,
+  location: { lat: 44.97, lng: -93.26 },
+  totalReportCount: 0,
+  claimedByUserId: null,
+  claimStatus: null,
+  deletedAt: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+}
 
-### Phase 7: Business
-19. Implement `apps/api/src/routes/business.ts` (claim routes)
-20. Implement `GET /business/my-restaurant`
-21. Mount in `app.ts`
+export const restaurantRoutes = new Hono<AppEnv>()
+  .get("/nearby", (c) => c.json({ restaurants: [] }))
+  .get("/", (c) => c.json({ restaurants: [STUB], nextCursor: null }))
+  .get("/:id", (c) => c.json(STUB))
+  .post("/", authMiddleware, zValidator("json", createRestaurantSchema), (c) => c.json(STUB, 201))
+  .patch("/:id", authMiddleware, zValidator("json", updateRestaurantSchema), (c) => c.json(STUB))
+  .delete("/:id", authMiddleware, (c) => new Response(null, { status: 204 }))
+  .route("/:id/reports", reportRoutes)
+  .route("/:id/certification", certificationRoutes)
+  .route("/:id", claimRoutes)
+```
 
-### Phase 8: Polish
-22. Verify all routes match API contracts in `docs/api-features-overview.md`
-23. Run `bun run typecheck` — fix all type errors
-24. Run `bunx biome check --write .` — fix all lint/format issues
-25. Create `firestore.indexes.json` at repo root
+### Mock response shapes per route file
+
+| Route file | Mock responses |
+|------------|----------------|
+| `me.ts` | `GET /` → mock User; `GET /favorites` → `{ favorites: [], nextCursor: null }`; `GET /reports` → `{ reports: [], nextCursor: null }`; mutations → `{ success: true }` or 204 |
+| `values.ts` | `GET /` → `{ values: [] }` |
+| `restaurants.ts` | List → `{ restaurants: [STUB], nextCursor: null }`; single → `STUB`; mutations → `STUB` or 204 |
+| `reports.ts` | Aggregate → `{ valueCounts: {}, totalReports: 0 }`; POST → mock Report; `/mine` → `{ hasActiveReport: false, reportedValues: [], nextReportAllowedAt: null }` |
+| `certification.ts` | `GET /` → mock Certification; mutations → mock Certification or `{ success: true, message: "..." }` |
+| `business-claims.ts` | Both routes → mock BusinessClaim |
+| `business.ts` | `GET /my-restaurant` → `{ restaurant: null }` |
+
+### Deliverable
+
+After Phase 0: `bun run typecheck` passes, `app.ts` exports a fully-wired `AppType` with all routes, and the frontend can make type-safe calls to every endpoint.
 
 ---
 
-## 15. API Contract Compliance
+## 15. Implementation Order
+
+Implement in this sequence to ensure each phase is functional before moving on:
+
+### Phase 0: Scaffolding (frontend-unblocking)
+1. Update `packages/shared` — rewrite user types/schemas, add all new domain schemas and types, update barrel exports
+2. Install `geofire-common` dependency
+3. Create all route files as stubs (`me.ts`, `values.ts`, `restaurants.ts`, `reports.ts`, `certification.ts`, `business-claims.ts`, `business.ts`) — all routes defined, mock responses, no Firestore
+4. Update `apps/api/src/app.ts` to mount all routes and add global error handler
+5. Verify `bun run typecheck` passes — frontend is now unblocked
+
+### Phase 1: Foundation (utilities)
+6. Create `apps/api/src/lib/geo.ts`
+7. Create `apps/api/src/lib/pagination.ts`
+8. Create `apps/api/src/middleware/ownership.ts`
+
+### Phase 2: User Routes
+9. Replace `me.ts` stub with full Firestore implementation (all 6 endpoints)
+
+### Phase 3: Values Route
+10. Replace `values.ts` stub with full Firestore implementation
+
+### Phase 4: Restaurants
+11. Replace `restaurants.ts` stub — basic CRUD first (GET /:id, POST, DELETE)
+12. Add list/search (`GET /restaurants`) with value + city filtering
+13. Add nearby (`GET /restaurants/nearby`) with geohash queries
+
+### Phase 5: Reports
+14. Replace `reports.ts` stub with full implementation
+
+### Phase 6: Certification
+15. Replace `certification.ts` stub with full implementation
+
+### Phase 7: Business
+16. Replace `business-claims.ts` and `business.ts` stubs with full implementation
+
+### Phase 8: Polish
+17. Verify all routes match API contracts in `docs/api-features-overview.md`
+18. Run `bun run typecheck` — fix all type errors
+19. Run `bunx biome check --write .` — fix all lint/format issues
+20. Create `firestore.indexes.json` at repo root
+
+---
+
+## 16. API Contract Compliance
 
 This implementation conforms to all contracts in `docs/api-features-overview.md` with the following clarifications:
 
