@@ -1,7 +1,10 @@
 {
   "name": "neighbo",
+  "devDependencies": {
+    "@biomejs/biome": "2.4.4",
+    "typescript": "5.9.3"
+  },
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "bun run --filter '*' dev",
     "dev:api": "bun run --filter @neighbo/api dev",
@@ -19,12 +22,9 @@
     "cap:android": "bun run --filter @neighbo/web cap:android",
     "cap:ios": "bun run --filter @neighbo/web cap:ios"
   },
-  "devDependencies": {
-    "@biomejs/biome": "2.4.4",
-    "typescript": "5.9.3"
-  },
   "trustedDependencies": [
     "@firebase/util",
     "protobufjs"
-  ]
+  ],
+  "workspaces": ["apps/*", "packages/*"]
 }
