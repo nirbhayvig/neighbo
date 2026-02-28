@@ -1,0 +1,30 @@
+{
+  "name": "neighbo",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "dev:api": "bun run --filter @neighbo/api dev",
+    "dev:web": "bun run --filter @neighbo/web dev",
+    "build": "bun run --filter '*' build",
+    "build:api": "bun run --filter @neighbo/api build",
+    "build:web": "bun run --filter @neighbo/web build",
+    "typecheck": "bun run --filter '*' typecheck",
+    "check": "bunx biome check .",
+    "check:fix": "bunx biome check --write .",
+    "format": "bunx biome format --write .",
+    "lint": "bunx biome lint .",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist packages/*/dist .bun",
+    "cap:sync": "bun run --filter @neighbo/web cap:sync",
+    "cap:android": "bun run --filter @neighbo/web cap:android",
+    "cap:ios": "bun run --filter @neighbo/web cap:ios"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "latest",
+    "typescript": "latest"
+  },
+  "trustedDependencies": [
+    "@firebase/util",
+    "protobufjs"
+  ]
+}

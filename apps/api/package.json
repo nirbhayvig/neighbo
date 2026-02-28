@@ -1,0 +1,23 @@
+{
+  "name": "@neighbo/api",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev":       "bun --watch src/index.ts",
+    "build":     "bun build src/index.ts --outdir dist --target bun --minify",
+    "start":     "bun dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@neighbo/shared": "workspace:*",
+    "firebase-admin": "latest",
+    "hono": "latest",
+    "@hono/zod-validator": "latest",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "latest"
+  }
+}

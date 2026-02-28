@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@neighbo/shared": ["../../packages/shared/src/index.ts"],
+      "@neighbo/shared/*": ["../../packages/shared/src/*"],
+      "@neighbo/api": ["../api/src/app.ts"]
+    }
+  },
+  "include": ["src/**/*", "vite.config.ts", "capacitor.config.ts", "../api/src/**/*"],
+  "exclude": ["node_modules", "dist", "android", "ios"]
+}
