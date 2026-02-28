@@ -16,20 +16,13 @@ const queryClient = new QueryClient({
   },
 })
 
-/**
- * Wait for Firebase to resolve the initial auth state before creating the router.
- * Without this, auth.currentUser is always null on first render (even for signed-in
- * users), causing the _authenticated guard to incorrectly redirect on page refresh.
- */
 function createAppRouter(user: User | null) {
-  const router = createRouter({
+  return createRouter({
     routeTree,
     context: { queryClient, user },
     defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
   })
-
-  return router
 }
 
 // One-time type registration — must use the return type of createAppRouter.
@@ -44,13 +37,19 @@ if (!domRoot) throw new Error("Root element not found")
 
 const root = createRoot(domRoot)
 
-// Firebase resolves the initial auth state asynchronously on page load.
-// We wait for the first emission before rendering to prevent a flash redirect.
+// Wait for Firebase to resolve the initial auth state before rendering.
+// This prevents a flash redirect on page refresh for signed-in users.
 const unsubscribe = onAuthChange((user) => {
-  // Only run once for the initial resolution, then detach.
   unsubscribe()
 
   const router = createAppRouter(user)
+
+  // Keep router context in sync with ongoing auth state changes after initial render.
+  // Running outside React avoids calling router.invalidate() synchronously during render.
+  onAuthChange((nextUser) => {
+    router.options.context.user = nextUser
+    setTimeout(() => router.invalidate(), 0)
+  })
 
   root.render(
     <StrictMode>
