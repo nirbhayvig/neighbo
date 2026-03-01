@@ -1,8 +1,8 @@
+import type { RestaurantSummary } from "@neighbo/shared/types"
 import { AdvancedMarker } from "@vis.gl/react-google-maps"
 import { ArrowRight, MapPin, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import type { RestaurantSummary } from "@neighbo/shared/types"
 import { getValueColor } from "@/lib/mock/data/values"
 
 interface MapPinCardProps {

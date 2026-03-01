@@ -1,6 +1,6 @@
+import type { Value } from "@neighbo/shared/types"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
-import type { Value } from "@neighbo/shared/types"
 
 /**
  * Fetches the full list of active values from the API.
