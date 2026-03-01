@@ -1,3 +1,4 @@
+import type { Restaurant } from "@neighbo/shared/types"
 import { useQuery } from "@tanstack/react-query"
 import { ExternalLink, MapPin } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
@@ -14,7 +15,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/lib/api"
 import { getPhotoUri, usePlaceDetails } from "@/lib/google-places"
 import { getValueColor } from "@/lib/mock/data/values"
-import type { Restaurant } from "@neighbo/shared/types"
 
 interface RestaurantSheetProps {
   restaurantId: string | null
@@ -55,8 +55,8 @@ function formatDistance(km: number) {
 function RestaurantSheetContent({ restaurant }: { restaurant: Restaurant }) {
   // Fetch Google Places photo in parallel — independent of Neighbo data
   const { data: place } = usePlaceDetails(restaurant.googlePlaceId)
-  const heroUrl =
-    place?.photos && place.photos.length > 0 ? getPhotoUri(place.photos[0]!, 800, 400) : null
+  const firstPhoto = place?.photos?.[0]
+  const heroUrl = firstPhoto ? getPhotoUri(firstPhoto, 800, 400) : null
 
   const mapsUrl = `https://maps.google.com/?q=${restaurant.location.lat},${restaurant.location.lng}`
 
@@ -167,7 +167,8 @@ export function RestaurantSheet({ restaurantId, onClose }: RestaurantSheetProps)
   const { data: restaurant, isLoading } = useQuery({
     queryKey: ["restaurants", restaurantId],
     queryFn: async (): Promise<Restaurant> => {
-      const res = await api.restaurants[":id"].$get({ param: { id: restaurantId! } })
+      if (!restaurantId) throw new Error("restaurantId required")
+      const res = await api.restaurants[":id"].$get({ param: { id: restaurantId } })
       if (!res.ok) throw new Error("Restaurant not found")
       return res.json()
     },

@@ -1,5 +1,5 @@
-import { AdvancedMarker } from "@vis.gl/react-google-maps"
 import type { RestaurantSummary } from "@neighbo/shared/types"
+import { AdvancedMarker } from "@vis.gl/react-google-maps"
 import { getValueColor } from "@/lib/mock/data/values"
 
 interface RestaurantPinProps {
@@ -73,7 +73,6 @@ export function RestaurantPin({ restaurant, isSelected, onClick }: RestaurantPin
           }}
         />
       </div>
-
     </AdvancedMarker>
   )
 }

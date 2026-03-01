@@ -1,6 +1,6 @@
+import type { RestaurantSummary } from "@neighbo/shared/types"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/lib/api"
-import type { RestaurantSummary } from "@neighbo/shared/types"
 
 interface Location {
   lat: number
@@ -20,10 +20,11 @@ export function useNearbyRestaurants(location: Location | null) {
   return useQuery({
     queryKey: ["restaurants", "nearby", location?.lat, location?.lng],
     queryFn: async (): Promise<RestaurantSummary[]> => {
+      if (!location) throw new Error("location required")
       const res = await api.restaurants.nearby.$get({
         query: {
-          lat: String(location!.lat),
-          lng: String(location!.lng),
+          lat: String(location.lat),
+          lng: String(location.lng),
           radius: "10",
           limit: "100",
         },

@@ -1,8 +1,8 @@
 import type { Renderer } from "@googlemaps/markerclusterer"
 import { MarkerClusterer } from "@googlemaps/markerclusterer"
+import type { RestaurantSummary } from "@neighbo/shared/types"
 import { useMap } from "@vis.gl/react-google-maps"
 import { useEffect, useRef } from "react"
-import type { RestaurantSummary } from "@neighbo/shared/types"
 
 interface PinClusterProps {
   restaurants: RestaurantSummary[]
