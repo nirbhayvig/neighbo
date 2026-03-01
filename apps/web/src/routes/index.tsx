@@ -20,13 +20,13 @@ function LoginPage() {
       </div>
       <GoogleSignInButton />
       <footer className="absolute bottom-6 flex gap-4 text-xs text-muted-foreground">
-        <Link to="/privacy" className="hover:text-foreground transition-colors">
+        <Link to={"/privacy" as any} className="hover:text-foreground transition-colors">
           Privacy
         </Link>
-        <Link to="/terms" className="hover:text-foreground transition-colors">
+        <Link to={"/terms" as any} className="hover:text-foreground transition-colors">
           Terms
         </Link>
-        <Link to="/support" className="hover:text-foreground transition-colors">
+        <Link to={"/support" as any} className="hover:text-foreground transition-colors">
           Support
         </Link>
       </footer>

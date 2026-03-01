@@ -2,11 +2,11 @@ import { AdvancedMarker } from "@vis.gl/react-google-maps"
 import { ArrowRight, MapPin, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import type { MockRestaurant } from "@/lib/mock/data/restaurants"
+import type { RestaurantSummary } from "@neighbo/shared/types"
 import { getValueColor } from "@/lib/mock/data/values"
 
 interface MapPinCardProps {
-  restaurant: MockRestaurant
+  restaurant: RestaurantSummary
   distanceKm?: number
   onTap: (id: string) => void
   onClose: () => void

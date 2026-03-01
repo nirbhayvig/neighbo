@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowLeft } from "lucide-react"
 
-export const Route = createFileRoute("/privacy")({
+export const Route = createFileRoute("/privacy" as any)({
   component: PrivacyPage,
 })
 
@@ -159,10 +159,10 @@ function PrivacyPage() {
         </div>
 
         <div className="mt-16 pt-8 border-t border-border/50 flex gap-4 text-xs text-muted-foreground">
-          <Link to="/terms" className="hover:text-foreground transition-colors">
+          <Link to={"/terms" as any} className="hover:text-foreground transition-colors">
             Terms of Service
           </Link>
-          <Link to="/support" className="hover:text-foreground transition-colors">
+          <Link to={"/support" as any} className="hover:text-foreground transition-colors">
             Support
           </Link>
         </div>

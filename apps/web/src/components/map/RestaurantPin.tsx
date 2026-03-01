@@ -1,9 +1,9 @@
 import { AdvancedMarker } from "@vis.gl/react-google-maps"
-import type { MockRestaurant } from "@/lib/mock/data/restaurants"
+import type { RestaurantSummary } from "@neighbo/shared/types"
 import { getValueColor } from "@/lib/mock/data/values"
 
 interface RestaurantPinProps {
-  restaurant: MockRestaurant
+  restaurant: RestaurantSummary
   isSelected: boolean
   onClick: (id: string) => void
 }
@@ -12,7 +12,7 @@ interface RestaurantPinProps {
  * Derives the "primary" value color for a restaurant:
  * uses the value with the highest certTier, falling back to the first.
  */
-function getPrimaryColor(restaurant: MockRestaurant): string {
+function getPrimaryColor(restaurant: RestaurantSummary): string {
   if (restaurant.values.length === 0) return "#94A3B8"
   const sorted = [...restaurant.values].sort((a, b) => b.certTier - a.certTier)
   const top = sorted[0]

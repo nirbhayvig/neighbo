@@ -1,12 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { Crosshair, LogOut } from "lucide-react"
 import { useState } from "react"
+import { RestaurantSheet } from "@/components/RestaurantSheet"
 import { MapView } from "@/components/map/MapView"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useGeolocation } from "@/hooks/use-geolocation"
-import { MOCK_RESTAURANTS } from "@/lib/mock/data/restaurants"
-import { VALUES, type ValueDefinition } from "@/lib/mock/data/values"
+import { useNearbyRestaurants } from "@/hooks/use-nearby-restaurants"
+import { useValues } from "@/hooks/use-values"
 import { signOut } from "../../lib/auth"
 import type { RouterContext } from "../__root"
 
@@ -15,10 +16,7 @@ export const Route = createFileRoute("/_authenticated/home" as any)({
 })
 
 // Value category color mapping for filter chips
-const CATEGORY_COLORS: Record<
-  ValueDefinition["category"],
-  { bg: string; text: string; border: string }
-> = {
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   identity: { bg: "#A78BFA18", text: "#A78BFA", border: "#A78BFA30" },
   "social-justice": { bg: "#FBBF2418", text: "#D97706", border: "#FBBF2430" },
   labor: { bg: "#60A5FA18", text: "#3B82F6", border: "#60A5FA30" },
@@ -33,6 +31,11 @@ function HomePage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [activeFilters, setActiveFilters] = useState<string[]>([])
   const [recenterRequested, setRecenterRequested] = useState(0)
+  const [sheetRestaurantId, setSheetRestaurantId] = useState<string | null>(null)
+
+  // Real data from API
+  const { data: restaurants, isLoading: restaurantsLoading } = useNearbyRestaurants(userLocation)
+  const { data: values = [] } = useValues()
 
   function toggleFilter(slug: string) {
     setActiveFilters((prev) =>
@@ -40,15 +43,18 @@ function HomePage() {
     )
   }
 
+  // True only on the very first load before any data has arrived
+  const isFetching = restaurantsLoading && !restaurants
+
   return (
     <div className="relative flex h-screen w-screen overflow-hidden bg-background">
       {/* ── Full-screen map ─────────────────────────────────────────── */}
       <div className="absolute inset-0">
         <MapView
-          restaurants={MOCK_RESTAURANTS}
+          restaurants={restaurants ?? []}
           selectedId={selectedId}
           onPinClick={(id) => setSelectedId((prev) => (prev === id ? null : id))}
-          onRestaurantOpen={(id) => console.log("Navigate to restaurant:", id)}
+          onRestaurantOpen={(id) => setSheetRestaurantId(id)}
           userLocation={userLocation}
           activeFilters={activeFilters}
           recenterRequested={recenterRequested}
@@ -93,10 +99,14 @@ function HomePage() {
               requestLocation()
               setRecenterRequested((n) => n + 1)
             }}
-            className="size-10 rounded-full bg-card/90 backdrop-blur-sm border-border/50 shadow-md"
+            className="size-10 rounded-full bg-card/90 backdrop-blur-sm border-border/50 shadow-md relative"
             title="Recenter on my location"
           >
             <Crosshair className="size-4 text-foreground" />
+            {/* Pulsing dot while the initial restaurant fetch is in-flight */}
+            {isFetching && (
+              <span className="absolute -top-0.5 -right-0.5 size-2.5 rounded-full bg-primary animate-pulse" />
+            )}
           </Button>
         </div>
 
@@ -115,9 +125,13 @@ function HomePage() {
             className="flex gap-2 overflow-x-auto px-4 pb-4 hide-scrollbar"
             style={{ WebkitOverflowScrolling: "touch" }}
           >
-            {VALUES.map((v) => {
+            {values.map((v) => {
               const active = activeFilters.includes(v.slug)
-              const colors = CATEGORY_COLORS[v.category]
+              const colors = CATEGORY_COLORS[v.category] ?? {
+                bg: "#94A3B818",
+                text: "#94A3B8",
+                border: "#94A3B830",
+              }
               return (
                 <button
                   key={v.slug}
@@ -150,6 +164,12 @@ function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* ── Restaurant detail drawer ──────────────────────────────────── */}
+      <RestaurantSheet
+        restaurantId={sheetRestaurantId}
+        onClose={() => setSheetRestaurantId(null)}
+      />
     </div>
   )
 }

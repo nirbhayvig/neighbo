@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react"
 import type { GeoLocation } from "@/hooks/use-geolocation"
 import { MINNEAPOLIS_CENTER } from "@/hooks/use-geolocation"
 import { useMapViewport } from "@/hooks/use-map-viewport"
-import type { MockRestaurant } from "@/lib/mock/data/restaurants"
+import type { RestaurantSummary } from "@neighbo/shared/types"
 import { MapPinCard } from "./MapPinCard"
 import { PinCluster } from "./PinCluster"
 import { RestaurantPin } from "./RestaurantPin"
@@ -25,7 +25,7 @@ function haversineKm(a: GeoLocation, b: GeoLocation): number {
 
 export interface MapViewProps {
   /** Restaurants to display on the map */
-  restaurants: MockRestaurant[]
+  restaurants: RestaurantSummary[]
   /** Currently selected restaurant id */
   selectedId?: string | null
   /** Called when a pin or cluster child is clicked */

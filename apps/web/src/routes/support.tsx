@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { ArrowLeft, ExternalLink } from "lucide-react"
 
-export const Route = createFileRoute("/support")({
+export const Route = createFileRoute("/support" as any)({
   component: SupportPage,
 })
 
@@ -109,10 +109,10 @@ function SupportPage() {
         </div>
 
         <div className="mt-16 pt-8 border-t border-border/50 flex gap-4 text-xs text-muted-foreground">
-          <Link to="/privacy" className="hover:text-foreground transition-colors">
+          <Link to={"/privacy" as any} className="hover:text-foreground transition-colors">
             Privacy Policy
           </Link>
-          <Link to="/terms" className="hover:text-foreground transition-colors">
+          <Link to={"/terms" as any} className="hover:text-foreground transition-colors">
             Terms of Service
           </Link>
         </div>
