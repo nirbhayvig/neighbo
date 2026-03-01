@@ -1,12 +1,12 @@
+import type { RestaurantSummary } from "@neighbo/shared/types"
 import { AdvancedMarker } from "@vis.gl/react-google-maps"
 import { ArrowRight, MapPin, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import type { MockRestaurant } from "@/lib/mock/data/restaurants"
 import { getValueColor } from "@/lib/mock/data/values"
 
 interface MapPinCardProps {
-  restaurant: MockRestaurant
+  restaurant: RestaurantSummary
   distanceKm?: number
   onTap: (id: string) => void
   onClose: () => void
@@ -20,8 +20,8 @@ const TIER_LABELS: Record<number, string> = {
 }
 
 function formatDistance(km: number): string {
-  if (km < 1) return `${Math.round(km * 1000)} m`
-  return `${km.toFixed(1)} km`
+  const miles = km * 0.621371
+  return `${miles < 0.1 ? "< 0.1" : miles.toFixed(1)} mi`
 }
 
 /**

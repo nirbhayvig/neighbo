@@ -1,11 +1,11 @@
 import type { Renderer } from "@googlemaps/markerclusterer"
 import { MarkerClusterer } from "@googlemaps/markerclusterer"
+import type { RestaurantSummary } from "@neighbo/shared/types"
 import { useMap } from "@vis.gl/react-google-maps"
 import { useEffect, useRef } from "react"
-import type { MockRestaurant } from "@/lib/mock/data/restaurants"
 
 interface PinClusterProps {
-  restaurants: MockRestaurant[]
+  restaurants: RestaurantSummary[]
   onPinClick: (id: string) => void
   selectedId: string | null
 }

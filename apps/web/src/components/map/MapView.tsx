@@ -1,9 +1,9 @@
+import type { RestaurantSummary } from "@neighbo/shared/types"
 import { APIProvider, Map as GoogleMap, type MapProps } from "@vis.gl/react-google-maps"
 import { useCallback, useEffect, useState } from "react"
 import type { GeoLocation } from "@/hooks/use-geolocation"
 import { MINNEAPOLIS_CENTER } from "@/hooks/use-geolocation"
 import { useMapViewport } from "@/hooks/use-map-viewport"
-import type { MockRestaurant } from "@/lib/mock/data/restaurants"
 import { MapPinCard } from "./MapPinCard"
 import { PinCluster } from "./PinCluster"
 import { RestaurantPin } from "./RestaurantPin"
@@ -11,8 +11,7 @@ import { RestaurantPin } from "./RestaurantPin"
 const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string
 
-// Approximate distances from Minneapolis center to each restaurant (km)
-// In production this comes from the API's distanceKm field
+// Returns distance in km (API unit). Display components convert to miles.
 function haversineKm(a: GeoLocation, b: GeoLocation): number {
   const R = 6371
   const dLat = ((b.lat - a.lat) * Math.PI) / 180
@@ -25,7 +24,7 @@ function haversineKm(a: GeoLocation, b: GeoLocation): number {
 
 export interface MapViewProps {
   /** Restaurants to display on the map */
-  restaurants: MockRestaurant[]
+  restaurants: RestaurantSummary[]
   /** Currently selected restaurant id */
   selectedId?: string | null
   /** Called when a pin or cluster child is clicked */
