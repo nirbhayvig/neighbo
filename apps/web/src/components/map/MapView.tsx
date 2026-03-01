@@ -11,8 +11,7 @@ import { RestaurantPin } from "./RestaurantPin"
 const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string
 
-// Approximate distances from Minneapolis center to each restaurant (km)
-// In production this comes from the API's distanceKm field
+// Returns distance in km (API unit). Display components convert to miles.
 function haversineKm(a: GeoLocation, b: GeoLocation): number {
   const R = 6371
   const dLat = ((b.lat - a.lat) * Math.PI) / 180

@@ -48,8 +48,8 @@ function getValueColors(slug: string) {
 }
 
 function formatDistance(km: number) {
-  if (km < 1) return `${Math.round(km * 1000)} m`
-  return `${km.toFixed(1)} km`
+  const miles = km * 0.621371
+  return `${miles < 0.1 ? "< 0.1" : miles.toFixed(1)} mi`
 }
 
 function RestaurantSheetContent({ restaurant }: { restaurant: Restaurant }) {
