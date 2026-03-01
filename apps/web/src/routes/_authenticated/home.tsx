@@ -1,14 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { Crosshair, LogOut } from "lucide-react"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { Crosshair } from "lucide-react"
 import { useState } from "react"
 import { MapView } from "@/components/map/MapView"
 import { RestaurantSheet } from "@/components/RestaurantSheet"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useGeolocation } from "@/hooks/use-geolocation"
 import { useNearbyRestaurants } from "@/hooks/use-nearby-restaurants"
 import { useValues } from "@/hooks/use-values"
-import { signOut } from "../../lib/auth"
 import type { RouterContext } from "../__root"
 
 export const Route = createFileRoute("/_authenticated/home" as any)({
@@ -27,6 +27,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string
 
 function HomePage() {
   const { user } = Route.useRouteContext() as RouterContext
+  const navigate = useNavigate()
   const { location: userLocation, requestLocation } = useGeolocation()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [activeFilters, setActiveFilters] = useState<string[]>([])
@@ -76,16 +77,20 @@ function HomePage() {
           Neighbo
         </span>
 
-        {/* Sign out */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => signOut()}
-          className="pointer-events-auto rounded-full bg-card/90 backdrop-blur-sm border-border/50 shadow-sm text-xs gap-1.5 px-3"
+        {/* Profile avatar — tap to open /me */}
+        <button
+          type="button"
+          onClick={() => navigate({ to: "/me" as any })}
+          className="pointer-events-auto rounded-full bg-card/90 backdrop-blur-sm border border-border/50 shadow-sm p-0.5 transition-opacity hover:opacity-80 active:scale-95"
+          aria-label="Your profile"
         >
-          <LogOut className="size-3.5" />
-          {user?.displayName?.split(" ")[0] ?? "Sign out"}
-        </Button>
+          <Avatar size="default">
+            <AvatarImage src={user?.photoURL ?? ""} alt={user?.displayName ?? "Profile"} />
+            <AvatarFallback className="text-xs font-semibold font-display">
+              {user?.displayName?.[0]?.toUpperCase() ?? "?"}
+            </AvatarFallback>
+          </Avatar>
+        </button>
       </div>
 
       {/* ── Bottom panel ─────────────────────────────────────────────── */}

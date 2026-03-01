@@ -1,6 +1,6 @@
 import type { Restaurant } from "@neighbo/shared/types"
 import { useQuery } from "@tanstack/react-query"
-import { ExternalLink, MapPin } from "lucide-react"
+import { ExternalLink, Fish, MapPin } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,9 +12,11 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useFavorites, useToggleFavorite } from "@/hooks/use-favorites"
 import { api } from "@/lib/api"
 import { getPhotoUri, usePlaceDetails } from "@/lib/google-places"
 import { getValueColor } from "@/lib/mock/data/values"
+import { cn } from "@/lib/utils"
 
 interface RestaurantSheetProps {
   restaurantId: string | null
@@ -57,6 +59,11 @@ function RestaurantSheetContent({ restaurant }: { restaurant: Restaurant }) {
   const { data: place } = usePlaceDetails(restaurant.googlePlaceId)
   const firstPhoto = place?.photos?.[0]
   const heroUrl = firstPhoto ? getPhotoUri(firstPhoto, 800, 400) : null
+
+  // Fish save button state
+  const { data: favorites = [] } = useFavorites()
+  const { mutate: toggleFavorite, isPending } = useToggleFavorite()
+  const isFavorited = favorites.some((f) => f.restaurantId === restaurant.id)
 
   const mapsUrl = `https://maps.google.com/?q=${restaurant.location.lat},${restaurant.location.lng}`
 
@@ -125,12 +132,38 @@ function RestaurantSheetContent({ restaurant }: { restaurant: Restaurant }) {
       </div>
 
       <DrawerFooter>
-        <Button asChild className="rounded-full font-display font-semibold">
-          <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="size-4" />
-            Get Directions
-          </a>
-        </Button>
+        <div className="flex gap-2">
+          {/* Fish button — the save/favorite icon. Outline = not saved, filled lake-blue = caught. 🐟 */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() =>
+              toggleFavorite({
+                restaurantId: restaurant.id,
+                isFavorited,
+                restaurantName: restaurant.name,
+                restaurantCity: restaurant.city,
+              })
+            }
+            disabled={isPending}
+            className="rounded-full size-10 shrink-0 border-border/60"
+            aria-label={isFavorited ? "Remove from your go-to spots" : "Add to your go-to spots"}
+          >
+            <Fish
+              className={cn(
+                "size-4 transition-colors",
+                isFavorited && "fill-blue-500 text-blue-500"
+              )}
+            />
+          </Button>
+
+          <Button asChild className="flex-1 rounded-full font-display font-semibold">
+            <a href={mapsUrl} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="size-4" />
+              Get Directions
+            </a>
+          </Button>
+        </div>
       </DrawerFooter>
     </>
   )
